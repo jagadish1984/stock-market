@@ -1,0 +1,532 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Local NSE Analytics - Demo</title>
+    <style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;color:#111;padding:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px}</style>
+  <!doctype html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NSE Pulse | Live Market Dashboard</title>
+    <style>
+      :root {
+        --bg: #0b1221;
+        --card: #111a2f;
+        --primary: #20c997;
+        --primary-2: #12a57a;
+        --text: #e9edf5;
+        --subtext: #9fb2d0;
+        --border: #1f2a40;
+        --pos: #33d69f;
+        --neg: #ff6b6b;
+        --muted: #7c8aaa;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        min-height: 100vh;
+      }
+      a { color: inherit; text-decoration: none; }
+      .page {
+        max-width: 1300px;
+        margin: 0 auto;
+        padding: 24px 20px 60px;
+      }
+      .hero {
+        background: linear-gradient(135deg, rgba(32,201,151,0.12), rgba(17,94,166,0.25));
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+      }
+      .hero-title {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+      .hero-sub {
+        color: var(--subtext);
+        margin-top: 6px;
+        font-size: 14px;
+      }
+      .hero-actions button {
+        background: var(--primary);
+        color: var(--bg);
+        border: none;
+        padding: 10px 16px;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 10px 30px rgba(32,201,151,0.3);
+      }
+      .hero-actions button:hover { background: var(--primary-2); }
+
+      .grid-cards {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+      }
+      .card-title { color: var(--subtext); font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; }
+      .card-value { margin-top: 8px; font-size: 24px; font-weight: 700; }
+      .flex-row { display: flex; align-items: center; gap: 10px; }
+
+      .tabs {
+        margin-top: 24px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .tab-btn {
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        color: var(--subtext);
+        cursor: pointer;
+        font-weight: 600;
+        transition: 0.2s;
+      }
+      .tab-btn.active {
+        background: var(--primary);
+        color: var(--bg);
+        border-color: transparent;
+        box-shadow: 0 12px 30px rgba(32,201,151,0.35);
+      }
+      .section {
+        display: none;
+        margin-top: 16px;
+      }
+      .section.active { display: block; }
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .section-header h2 { margin: 0; font-size: 18px; }
+      .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+      .pill {
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--subtext);
+        padding: 8px 12px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .pill.active { background: var(--primary); color: var(--bg); border-color: transparent; }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      thead { background: #121c31; }
+      th, td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        color: var(--subtext);
+        font-size: 13px;
+      }
+      th { color: var(--text); font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase; }
+      tr:hover td { background: rgba(255,255,255,0.02); color: var(--text); }
+      .symbol { color: var(--text); font-weight: 700; }
+      .pos { color: var(--pos); font-weight: 700; }
+      .neg { color: var(--neg); font-weight: 700; }
+      .muted { color: var(--muted); }
+
+      .loading {
+        padding: 24px;
+        text-align: center;
+        color: var(--subtext);
+      }
+      .error { color: var(--neg); padding: 24px; text-align: center; }
+      .badge { padding: 4px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+      .badge.vol { background: rgba(32,201,151,0.12); color: var(--primary); }
+      .badge.val { background: rgba(66,133,244,0.12); color: #9bc1ff; }
+
+      .dual-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(480px, 1fr)); gap: 16px; }
+      .search-box {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+      }
+      .search-box input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: var(--text);
+        font-size: 14px;
+        outline: none;
+      }
+      .search-box button {
+        background: var(--primary);
+        border: none;
+        color: var(--bg);
+        padding: 8px 14px;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .pill-group { display: flex; gap: 6px; }
+
+      footer { margin-top: 24px; color: var(--muted); text-align: center; font-size: 12px; }
+
+      @media (max-width: 768px) {
+        .hero { flex-direction: column; align-items: flex-start; }
+        .dual-grid { grid-template-columns: 1fr; }
+        table { font-size: 12px; }
+        th, td { padding: 10px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="hero">
+        <div>
+          <div class="hero-title">NSE Pulse | Live Market Dashboard</div>
+          <div class="hero-sub">Top gainers, losers, volumes and price-bands. Updated every 10 minutes.</div>
+        </div>
+        <div class="hero-actions">
+          <button onclick="refreshAll()">Refresh Now</button>
+        </div>
+      </div>
+
+      <div class="grid-cards" id="summaryCards">
+        <div class="card"><div class="card-title">Total Stocks</div><div class="card-value" id="totalStocks">-</div></div>
+        <div class="card"><div class="card-title">Advancers</div><div class="card-value" id="advancers">-</div></div>
+        <div class="card"><div class="card-title">Decliners</div><div class="card-value" id="decliners">-</div></div>
+        <div class="card"><div class="card-title">Unchanged</div><div class="card-value" id="unchanged">-</div></div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="gainers" onclick="switchTab('gainers', event)">Top Gainers</button>
+        <button class="tab-btn" data-tab="losers" onclick="switchTab('losers', event)">Top Losers</button>
+        <button class="tab-btn" data-tab="active" onclick="switchTab('active', event)">Most Active</button>
+        <button class="tab-btn" data-tab="small" onclick="switchTab('small', event)">₹10-100</button>
+        <button class="tab-btn" data-tab="mid" onclick="switchTab('mid', event)">₹100-1000</button>
+        <button class="tab-btn" data-tab="large" onclick="switchTab('large', event)">₹1000+</button>
+        <button class="tab-btn" data-tab="search" onclick="switchTab('search', event)">Search</button>
+      </div>
+
+      <div id="gainers" class="section active">
+        <div class="section-header">
+          <h2>Top Gainers</h2>
+          <div class="controls pill-group">
+            <button class="pill active" data-limit="10" onclick="setLimit('gainers', 10, this)">Top 10</button>
+            <button class="pill" data-limit="50" onclick="setLimit('gainers', 50, this)">Top 50</button>
+            <button class="pill" data-limit="100" onclick="setLimit('gainers', 100, this)">Top 100</button>
+          </div>
+        </div>
+        <div id="gainers-content" class="loading">Loading gainers...</div>
+      </div>
+
+      <div id="losers" class="section">
+        <div class="section-header">
+          <h2>Top Losers</h2>
+          <div class="controls pill-group">
+            <button class="pill active" data-limit="10" onclick="setLimit('losers', 10, this)">Top 10</button>
+            <button class="pill" data-limit="50" onclick="setLimit('losers', 50, this)">Top 50</button>
+            <button class="pill" data-limit="100" onclick="setLimit('losers', 100, this)">Top 100</button>
+          </div>
+        </div>
+        <div id="losers-content" class="loading">Loading losers...</div>
+      </div>
+
+      <div id="active" class="section">
+        <div class="section-header">
+          <h2>Most Active</h2>
+          <div class="controls pill-group">
+            <button class="pill active" data-by="volume" onclick="setActiveBy('volume', this)">By Volume</button>
+            <button class="pill" data-by="value" onclick="setActiveBy('value', this)">By Value</button>
+            <button class="pill active" data-limit="10" onclick="setLimit('active', 10, this)">Top 10</button>
+            <button class="pill" data-limit="50" onclick="setLimit('active', 50, this)">Top 50</button>
+          </div>
+        </div>
+        <div id="active-content" class="loading">Loading most active...</div>
+      </div>
+
+      <div id="small" class="section">
+        <div class="section-header">
+          <h2>₹10 - ₹100</h2>
+          <div class="controls pill-group">
+            <button class="pill active" data-limit="10" onclick="setLimit('small', 10, this)">Top 10</button>
+            <button class="pill" data-limit="50" onclick="setLimit('small', 50, this)">Top 50</button>
+          </div>
+        </div>
+        <div id="small-content" class="loading">Loading small caps...</div>
+      </div>
+
+      <div id="mid" class="section">
+        <div class="section-header">
+          <h2>₹100 - ₹1000</h2>
+          <div class="controls pill-group">
+            <button class="pill active" data-limit="10" onclick="setLimit('mid', 10, this)">Top 10</button>
+            <button class="pill" data-limit="50" onclick="setLimit('mid', 50, this)">Top 50</button>
+          </div>
+        </div>
+        <div id="mid-content" class="loading">Loading mid caps...</div>
+      </div>
+
+      <div id="large" class="section">
+        <div class="section-header">
+          <h2>₹1000+</h2>
+          <div class="controls pill-group">
+            <button class="pill active" data-limit="10" onclick="setLimit('large', 10, this)">Top 10</button>
+            <button class="pill" data-limit="50" onclick="setLimit('large', 50, this)">Top 50</button>
+          </div>
+        </div>
+        <div id="large-content" class="loading">Loading large caps...</div>
+      </div>
+
+      <div id="search" class="section">
+        <div class="section-header">
+          <h2>Search Symbol</h2>
+        </div>
+        <div class="search-box">
+          <input id="searchInput" placeholder="e.g. RELIANCE" />
+          <button onclick="loadSearch()">Search</button>
+        </div>
+        <div id="search-content" class="loading">Enter a symbol to view details.</div>
+      </div>
+
+      <footer>
+        Powered by official NSE SFTP feeds. Data refresh every 10 minutes. Last update: <span id="lastUpdate">-</span>
+      </footer>
+    </div>
+
+    <script>
+      const API_BASE = '';
+      let state = {
+        gainersLimit: 10,
+        losersLimit: 10,
+        activeLimit: 10,
+        activeBy: 'volume',
+        smallLimit: 10,
+        midLimit: 10,
+        largeLimit: 10,
+      };
+
+      function switchTab(tabId, ev) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        ev.target.classList.add('active');
+        document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        loadTab(tabId);
+      }
+
+      function setLimit(section, value, el) {
+        const key = section + 'Limit';
+        state[key] = value;
+        // toggle pills
+        el.parentElement.querySelectorAll('.pill[data-limit]').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        loadTab(section);
+      }
+
+      function setActiveBy(by, el) {
+        state.activeBy = by;
+        // toggle pills
+        const group = el.parentElement;
+        group.querySelectorAll('.pill[data-by]').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        loadActive();
+      }
+
+      async function fetchAPI(path) {
+        const res = await fetch(API_BASE + path);
+        if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+        return await res.json();
+      }
+
+      function fmtPrice(v) { return v == null ? '-' : '₹' + Number(v).toFixed(2); }
+      function fmtNum(v) {
+        if (v == null) return '-';
+        const n = Number(v);
+        if (n >= 1e7) return (n/1e7).toFixed(2) + ' Cr';
+        if (n >= 1e5) return (n/1e5).toFixed(2) + ' L';
+        return n.toLocaleString('en-IN');
+      }
+      function fmtChg(v) {
+        if (v == null) return '-';
+        const cls = v >= 0 ? 'pos' : 'neg';
+        const sign = v >= 0 ? '+' : '';
+        return `<span class="${cls}">${sign}${v.toFixed(2)}%</span>`;
+      }
+
+      function renderTable(rows, columns) {
+        if (!rows || rows.length === 0) return '<div class="loading">No data</div>';
+        let html = '<table><thead><tr>' + columns.map(c => `<th>${c.label}</th>`).join('') + '</tr></thead><tbody>';
+        for (const r of rows) {
+          html += '<tr>';
+          for (const c of columns) {
+            const val = c.render ? c.render(r) : r[c.key];
+            html += `<td>${val ?? '-'}</td>`;
+          }
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+        return html;
+      }
+
+      async function loadSummary() {
+        try {
+          const data = await fetchAPI('/api/market-overview');
+          document.getElementById('totalStocks').textContent = data.total_stocks ?? '-';
+          document.getElementById('advancers').textContent = data.advancers ?? '-';
+          document.getElementById('decliners').textContent = data.decliners ?? '-';
+          document.getElementById('unchanged').textContent = data.unchanged ?? '-';
+        } catch (e) { console.error('summary', e); }
+      }
+
+      async function loadGainers() {
+          const limit = state.gainersLimit;
+          const el = document.getElementById('gainers-content');
+          el.innerHTML = '<div class="loading">Loading gainers...</div>';
+          try {
+            const data = await fetchAPI(`/api/top-gainers?limit=${limit}`);
+            const cols = [
+              { key: 'symbol', label: 'Symbol', render: r => `<span class="symbol">${r.symbol}</span>` },
+              { key: 'last', label: 'LTP', render: r => fmtPrice(r.last) },
+              { key: 'open', label: 'Open', render: r => fmtPrice(r.open) },
+              { key: 'high', label: 'High', render: r => fmtPrice(r.high) },
+              { key: 'low', label: 'Low', render: r => fmtPrice(r.low) },
+              { key: 'change_pct', label: 'Change %', render: r => fmtChg(r.change_pct) },
+              { key: 'volume', label: 'Volume', render: r => fmtNum(r.volume) }
+            ];
+            el.innerHTML = renderTable(data, cols);
+          } catch (e) { el.innerHTML = '<div class="error">Failed to load gainers</div>'; }
+      }
+
+      async function loadLosers() {
+          const limit = state.losersLimit;
+          const el = document.getElementById('losers-content');
+          el.innerHTML = '<div class="loading">Loading losers...</div>';
+          try {
+            const data = await fetchAPI(`/api/top-losers?limit=${limit}`);
+            const cols = [
+              { key: 'symbol', label: 'Symbol', render: r => `<span class="symbol">${r.symbol}</span>` },
+              { key: 'last', label: 'LTP', render: r => fmtPrice(r.last) },
+              { key: 'open', label: 'Open', render: r => fmtPrice(r.open) },
+              { key: 'high', label: 'High', render: r => fmtPrice(r.high) },
+              { key: 'low', label: 'Low', render: r => fmtPrice(r.low) },
+              { key: 'change_pct', label: 'Change %', render: r => fmtChg(r.change_pct) },
+              { key: 'volume', label: 'Volume', render: r => fmtNum(r.volume) }
+            ];
+            el.innerHTML = renderTable(data, cols);
+          } catch (e) { el.innerHTML = '<div class="error">Failed to load losers</div>'; }
+      }
+
+      async function loadActive() {
+          const limit = state.activeLimit;
+          const by = state.activeBy;
+          const el = document.getElementById('active-content');
+          el.innerHTML = '<div class="loading">Loading most active...</div>';
+          try {
+            const data = await fetchAPI(`/api/most-active?limit=${limit}&by=${by}`);
+            const cols = [
+              { key: 'symbol', label: 'Symbol', render: r => `<span class="symbol">${r.symbol}</span>` },
+              { key: by, label: by === 'volume' ? 'Volume' : 'Traded Value', render: r => fmtNum(r[by]) }
+            ];
+            el.innerHTML = renderTable(data, cols);
+          } catch (e) { el.innerHTML = '<div class="error">Failed to load most active</div>'; }
+      }
+
+      async function loadBand(section, min, max) {
+          const limitKey = section + 'Limit';
+          const limit = state[limitKey];
+          const el = document.getElementById(section + '-content');
+          el.innerHTML = '<div class="loading">Loading...</div>';
+          try {
+            const data = await fetchAPI(`/api/price-range?min_price=${min}&max_price=${max}&limit=${limit}`);
+            const cols = [
+              { key: 'symbol', label: 'Symbol', render: r => `<span class="symbol">${r.symbol}</span>` },
+              { key: 'last', label: 'LTP', render: r => fmtPrice(r.last) },
+              { key: 'open', label: 'Open', render: r => fmtPrice(r.open) },
+              { key: 'high', label: 'High', render: r => fmtPrice(r.high) },
+              { key: 'low', label: 'Low', render: r => fmtPrice(r.low) },
+              { key: 'change_pct', label: 'Change %', render: r => fmtChg(r.change_pct) },
+              { key: 'volume', label: 'Volume', render: r => fmtNum(r.volume) }
+            ];
+            el.innerHTML = renderTable(data, cols);
+          } catch (e) { el.innerHTML = '<div class="error">Failed to load band</div>'; }
+      }
+
+      async function loadSearch() {
+        const el = document.getElementById('search-content');
+        const q = document.getElementById('searchInput').value.trim();
+        if (!q) { el.textContent = 'Enter a symbol to view details.'; return; }
+        el.innerHTML = '<div class="loading">Searching...</div>';
+        try {
+          const data = await fetchAPI(`/api/search?q=${encodeURIComponent(q)}&limit=50`);
+          const rows = Array.isArray(data) ? data : [data];
+          const cols = [
+            { key: 'symbol', label: 'Symbol', render: r => `<span class="symbol">${r.symbol}</span>` },
+            { key: 'last', label: 'LTP', render: r => fmtPrice(r.last) },
+            { key: 'open', label: 'Open', render: r => fmtPrice(r.open) },
+            { key: 'high', label: 'High', render: r => fmtPrice(r.high) },
+            { key: 'low', label: 'Low', render: r => fmtPrice(r.low) },
+            { key: 'prev_close', label: 'Prev Close', render: r => fmtPrice(r.prev_close) },
+            { key: 'volume', label: 'Volume', render: r => fmtNum(r.volume) },
+            { key: 'traded_value', label: 'Value', render: r => fmtNum(r.traded_value) }
+          ];
+          el.innerHTML = renderTable(rows, cols);
+        } catch (e) {
+          el.innerHTML = '<div class="error">No matching symbols</div>';
+        }
+      }
+
+      function loadTab(tab) {
+        if (tab === 'gainers') return loadGainers();
+        if (tab === 'losers') return loadLosers();
+        if (tab === 'active') return loadActive();
+        if (tab === 'small') return loadBand('small', 10, 100);
+        if (tab === 'mid') return loadBand('mid', 100, 1000);
+        if (tab === 'large') return loadBand('large', 1000, 1000000);
+        if (tab === 'search') return;
+      }
+
+      function refreshAll() {
+        loadSummary();
+        loadTab('gainers');
+        loadTab('losers');
+        loadTab('active');
+        loadTab('small');
+        loadTab('mid');
+        loadTab('large');
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
+      }
+
+      // Initial load
+      refreshAll();
+      setInterval(refreshAll, 120000);
+    </script>
+  </body>
+  </html>

@@ -1,0 +1,15 @@
+[Unit]
+Description=Stock Market Analytics Service
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/stock-market
+EnvironmentFile=/etc/stock-market.env
+ExecStart=/usr/bin/gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000 --workers 4
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
