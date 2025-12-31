@@ -17,6 +17,8 @@ from app.db import init_db
 from app.downloader import list_and_download_once
 from app.ingest import ingest_once
 from app import analytics
+from app.fii_dii import get_fii_dii_data
+from app.bulk_deals import get_bulk_block_deals
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -153,6 +155,26 @@ def search_symbols(q: str, limit: int = 20, date: Optional[str] = None):
     """Search symbols by substring on latest available EOD date (or the provided date)."""
     target = date and datetime.fromisoformat(date).date() or None
     return JSONResponse(analytics.search_symbols(q, limit, target))
+
+
+@app.get("/api/fii-dii")
+def get_institutional_data(date: Optional[str] = None):
+    """Get FII/DII institutional investor data for the given date."""
+    from datetime import timedelta
+    target = date and datetime.fromisoformat(date).date() or (datetime.utcnow().date() - timedelta(days=1))
+    data = get_fii_dii_data(target)
+    if data:
+        return JSONResponse(data)
+    return JSONResponse({"error": "Data not available for the specified date"}, status_code=404)
+
+
+@app.get("/api/bulk-deals")
+def get_bulk_deals_data(date: Optional[str] = None):
+    """Get bulk/block deals showing which stocks FII/DII are trading."""
+    from datetime import timedelta
+    target = date and datetime.fromisoformat(date).date() or (datetime.utcnow().date() - timedelta(days=1))
+    data = get_bulk_block_deals(target)
+    return JSONResponse(data)
 
 
 if __name__ == "__main__":

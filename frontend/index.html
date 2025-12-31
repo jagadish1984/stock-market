@@ -9,6 +9,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>NSE Pulse | Live Market Dashboard</title>
     <style>
       :root {
@@ -226,10 +229,22 @@
         <div class="card"><div class="card-title">Unchanged</div><div class="card-value" id="unchanged">-</div></div>
       </div>
 
+      <!-- FII/DII Institutional Investor Section -->
+      <div style="margin-top: 20px; background: linear-gradient(135deg, rgba(66,133,244,0.08), rgba(155,81,224,0.08)); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+        <h2 style="margin: 0 0 16px 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+          <span>🏦</span> Institutional Investor Activity (FII/DII)
+        </h2>
+        <div id="fiiDiiContent" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+          <div class="loading">Loading FII/DII data...</div>
+        </div>
+      </div>
+
       <div class="tabs">
         <button class="tab-btn active" data-tab="gainers" onclick="switchTab('gainers', event)">Top Gainers</button>
         <button class="tab-btn" data-tab="losers" onclick="switchTab('losers', event)">Top Losers</button>
         <button class="tab-btn" data-tab="active" onclick="switchTab('active', event)">Most Active</button>
+        <button class="tab-btn" data-tab="fii-stocks" onclick="switchTab('fii-stocks', event)">🌍 FII Stocks</button>
+        <button class="tab-btn" data-tab="dii-stocks" onclick="switchTab('dii-stocks', event)">🏛️ DII Stocks</button>
         <button class="tab-btn" data-tab="small" onclick="switchTab('small', event)">₹10-100</button>
         <button class="tab-btn" data-tab="mid" onclick="switchTab('mid', event)">₹100-1000</button>
         <button class="tab-btn" data-tab="large" onclick="switchTab('large', event)">₹1000+</button>
@@ -271,6 +286,20 @@
           </div>
         </div>
         <div id="active-content" class="loading">Loading most active...</div>
+      </div>
+
+      <div id="fii-stocks" class="section">
+        <div class="section-header">
+          <h2>🌍 FII Stock Activity (Bulk/Block Deals)</h2>
+        </div>
+        <div id="fii-stocks-content" class="loading">Loading FII stock activity...</div>
+      </div>
+
+      <div id="dii-stocks" class="section">
+        <div class="section-header">
+          <h2>🏛️ DII Stock Activity (Bulk/Block Deals)</h2>
+        </div>
+        <div id="dii-stocks-content" class="loading">Loading DII stock activity...</div>
       </div>
 
       <div id="small" class="section">
@@ -361,9 +390,13 @@
       }
 
       async function fetchAPI(path) {
+        console.log('Fetching:', API_BASE + path);
         const res = await fetch(API_BASE + path);
+        console.log('Response status:', res.status, 'for', path);
         if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
-        return await res.json();
+        const data = await res.json();
+        console.log('Data received for', path, ':', data);
+        return data;
       }
 
       function fmtPrice(v) { return v == null ? '-' : '₹' + Number(v).toFixed(2); }
@@ -398,12 +431,100 @@
 
       async function loadSummary() {
         try {
+          console.log('Loading market overview summary...');
           const data = await fetchAPI('/api/market-overview');
+          console.log('Market overview data:', data);
           document.getElementById('totalStocks').textContent = data.total_stocks ?? '-';
           document.getElementById('advancers').textContent = data.advancers ?? '-';
           document.getElementById('decliners').textContent = data.decliners ?? '-';
           document.getElementById('unchanged').textContent = data.unchanged ?? '-';
-        } catch (e) { console.error('summary', e); }
+          console.log('Summary loaded successfully');
+        } catch (e) { 
+          console.error('Failed to load summary:', e); 
+          alert('Error loading summary: ' + e.message);
+        }
+      }
+
+      async function loadFiiDii() {
+          const el = document.getElementById('fiiDiiContent');
+          try {
+            const data = await fetchAPI('/api/fii-dii');
+            if (!data || data.error) {
+              el.innerHTML = '<div style="color: var(--muted); text-align: center;">Data not available yet (published with 1-day lag)</div>';
+              return;
+            }
+            
+            const fii = data.fii || {};
+            const dii = data.dii || {};
+            
+            const fmtSentiment = (s) => s === 'bullish' ? '📈 Bullish' : '📉 Bearish';
+            const fmtClass = (s) => s === 'bullish' ? 'pos' : 'neg';
+            
+            el.innerHTML = `
+              <div class="card">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                  <span style="font-size: 20px;">🌍</span>
+                  <div>
+                    <div style="font-weight: 700; font-size: 14px;">Foreign Institutional Investors (FII)</div>
+                    <div style="color: var(--subtext); font-size: 11px;">Derivatives Market</div>
+                  </div>
+                </div>
+                <div style="margin-top: 12px; font-size: 13px;">
+                  <div style="display: flex; justify-content: space-between; margin: 6px 0;">
+                    <span style="color: var(--subtext);">Long Positions:</span>
+                    <span style="font-weight: 600;">${(fii.long || 0).toLocaleString()}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin: 6px 0;">
+                    <span style="color: var(--subtext);">Short Positions:</span>
+                    <span style="font-weight: 600;">${(fii.short || 0).toLocaleString()}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin: 6px 0; padding-top: 8px; border-top: 1px solid var(--border);">
+                    <span style="color: var(--subtext);">Net Position:</span>
+                    <span class="${fmtClass(fii.sentiment)}" style="font-weight: 700;">${(fii.net || 0).toLocaleString()}</span>
+                  </div>
+                  <div style="margin-top: 10px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center; font-weight: 600; font-size: 12px;">
+                    ${fmtSentiment(fii.sentiment)}
+                  </div>
+                </div>
+              </div>
+              
+              <div class="card">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                  <span style="font-size: 20px;">🏛️</span>
+                  <div>
+                    <div style="font-weight: 700; font-size: 14px;">Domestic Institutional Investors (DII)</div>
+                    <div style="color: var(--subtext); font-size: 11px;">Derivatives Market</div>
+                  </div>
+                </div>
+                <div style="margin-top: 12px; font-size: 13px;">
+                  <div style="display: flex; justify-content: space-between; margin: 6px 0;">
+                    <span style="color: var(--subtext);">Long Positions:</span>
+                    <span style="font-weight: 600;">${(dii.long || 0).toLocaleString()}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin: 6px 0;">
+                    <span style="color: var(--subtext);">Short Positions:</span>
+                    <span style="font-weight: 600;">${(dii.short || 0).toLocaleString()}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin: 6px 0; padding-top: 8px; border-top: 1px solid var(--border);">
+                    <span style="color: var(--subtext);">Net Position:</span>
+                    <span class="${fmtClass(dii.sentiment)}" style="font-weight: 700;">${(dii.net || 0).toLocaleString()}</span>
+                  </div>
+                  <div style="margin-top: 10px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center; font-weight: 600; font-size: 12px;">
+                    ${fmtSentiment(dii.sentiment)}
+                  </div>
+                </div>
+              </div>
+              
+              <div style="grid-column: 1 / -1; margin-top: 8px; padding: 12px; background: rgba(255,255,255,0.02); border-radius: 8px; font-size: 12px; color: var(--subtext); line-height: 1.6;">
+                📅 Data as of: ${data.date || 'N/A'} | 
+                💡 FII/DII data shows institutional trading in derivatives market. 
+                Net Long = Bullish sentiment | Net Short = Bearish sentiment or hedging
+              </div>
+            `;
+          } catch (e) {
+            console.error('Failed to load FII/DII:', e);
+            el.innerHTML = '<div style="color: var(--muted); text-align: center;">Unable to load institutional data</div>';
+          }
       }
 
       async function loadGainers() {
@@ -503,6 +624,76 @@
         }
       }
 
+      async function loadFiiStocks() {
+        const el = document.getElementById('fii-stocks-content');
+        el.innerHTML = '<div class="loading">Loading FII stock activity...</div>';
+        try {
+          const data fii-stocks') return loadFiiStocks();
+        if (tab === 'dii-stocks') return loadDiiStocks();
+        if (tab === '= await fetchAPI('/api/bulk-deals');
+          if (!data.fii_stocks || data.fii_stocks.length === 0) {
+            el.innerHTML = '<div style="color: var(--muted); padding: 24px; text-align: center;">No FII bulk/block deals available for this date</div>';
+            return;
+          }
+          
+          let html = `<div style="margin-bottom: 16px; padding: 12px; background: rgba(32,201,151,0.08); border-radius: 8px; font-size: 13px;">
+            📊 <strong>${data.summary.fii_buys}</strong> FII Buys | <strong>${data.summary.fii_sells}</strong> FII Sells | 
+            📅 Date: ${data.date || 'N/A'}
+          </div>`;
+          
+          const cols = [
+            { key: 'symbol', label: 'Stock', render: r => `<span class="symbol">${r.symbol}</span>` },
+            { key: 'buy_quantity', label: 'Buy Qty', render: r => fmtNum(r.buy_quantity) },
+            { key: 'sell_quantity', label: 'Sell Qty', render: r => fmtNum(r.sell_quantity) },
+            { key: 'net_quantity', label: 'Net Position', render: r => {
+              const cls = r.net_quantity > 0 ? 'pos' : 'neg';
+              return `<span class="${cls}">${fmtNum(r.net_quantity)}</span>`;
+            }},
+            { key: 'deals', label: 'Deals', render: r => r.deals.length }
+          ];
+          
+          html += renderTable(data.fii_stocks.slice(0, 50), cols);
+          el.innerHTML = html;
+        } catch (e) {
+          console.error('Failed to load FII stocks:', e);
+          el.innerHTML = '<div class="error">Failed to load FII stock activity</div>';
+        }
+      }
+
+      async function loadDiiStocks() {
+        const el = document.getElementById('dii-stocks-content');
+        el.innerHTML = '<div class="loading">Loading DII stock activity...</div>';
+        try {
+          const data = await fetchAPI('/api/bulk-deals');
+          if (!data.dii_stocks || data.dii_stocks.length === 0) {
+            el.innerHTML = '<div style="color: var(--muted); padding: 24px; text-align: center;">No DII bulk/block deals available for this date</div>';
+            return;
+          }
+          
+          let html = `<div style="margin-bottom: 16px; padding: 12px; background: rgba(66,133,244,0.08); border-radius: 8px; font-size: 13px;">
+            📊 <strong>${data.summary.dii_buys}</strong> DII Buys | <strong>${data.summary.dii_sells}</strong> DII Sells | 
+            📅 Date: ${data.date || 'N/A'}
+          </div>`;
+          
+          const cols = [
+            { key: 'symbol', label: 'Stock', render: r => `<span class="symbol">${r.symbol}</span>` },
+            { key: 'buy_quantity', label: 'Buy Qty', render: r => fmtNum(r.buy_quantity) },
+            { key: 'sell_quantity', label: 'Sell Qty', render: r => fmtNum(r.sell_quantity) },
+            { key: 'net_quantity', label: 'Net Position', render: r => {
+              const cls = r.net_quantity > 0 ? 'pos' : 'neg';
+              return `<span class="${cls}">${fmtNum(r.net_quantity)}</span>`;
+            }},
+            { key: 'deals', label: 'Deals', render: r => r.deals.length }
+          ];
+          
+          html += renderTable(data.dii_stocks.slice(0, 50), cols);
+          el.innerHTML = html;
+        } catch (e) {
+          console.error('Failed to load DII stocks:', e);
+          el.innerHTML = '<div class="error">Failed to load DII stock activity</div>';
+        }
+      }
+
       function loadTab(tab) {
         if (tab === 'gainers') return loadGainers();
         if (tab === 'losers') return loadLosers();
@@ -515,6 +706,7 @@
 
       function refreshAll() {
         loadSummary();
+        loadFiiDii();
         loadTab('gainers');
         loadTab('losers');
         loadTab('active');
@@ -524,9 +716,22 @@
         document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
       }
 
+      // Global error handler
+      window.addEventListener('error', function(e) {
+        console.error('Global error:', e.error);
+        alert('JavaScript Error: ' + e.message);
+      });
+      
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled promise rejection:', e.reason);
+        alert('Promise Error: ' + e.reason);
+      });
+      
       // Initial load
+      console.log('Starting initial load...');
       refreshAll();
       setInterval(refreshAll, 120000);
+      console.log('Setup complete');
     </script>
   </body>
   </html>
