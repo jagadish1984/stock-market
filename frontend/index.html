@@ -1,19 +1,13 @@
 <!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Local NSE Analytics - Demo</title>
-    <style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;color:#111;padding:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px}</style>
-  <!doctype html>
-  <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <title>NSE Pulse | Live Market Dashboard</title>
-    <style>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>NSE Pulse | Live Market Dashboard v2.0</title>
+  <style>
       :root {
         --bg: #0b1221;
         --card: #111a2f;
@@ -214,7 +208,7 @@
     <div class="page">
       <div class="hero">
         <div>
-          <div class="hero-title">NSE Pulse | Live Market Dashboard</div>
+          <div class="hero-title">NSE Pulse | Live Market Dashboard <span style="font-size:12px;opacity:0.6;">v1735635659</span></div>
           <div class="hero-sub">Top gainers, losers, volumes and price-bands. Updated every 10 minutes.</div>
         </div>
         <div class="hero-actions">
@@ -628,9 +622,7 @@
         const el = document.getElementById('fii-stocks-content');
         el.innerHTML = '<div class="loading">Loading FII stock activity...</div>';
         try {
-          const data fii-stocks') return loadFiiStocks();
-        if (tab === 'dii-stocks') return loadDiiStocks();
-        if (tab === '= await fetchAPI('/api/bulk-deals');
+          const data = await fetchAPI('/api/bulk-deals');
           if (!data.fii_stocks || data.fii_stocks.length === 0) {
             el.innerHTML = '<div style="color: var(--muted); padding: 24px; text-align: center;">No FII bulk/block deals available for this date</div>';
             return;
@@ -698,6 +690,8 @@
         if (tab === 'gainers') return loadGainers();
         if (tab === 'losers') return loadLosers();
         if (tab === 'active') return loadActive();
+        if (tab === 'fii-stocks') return loadFiiStocks();
+        if (tab === 'dii-stocks') return loadDiiStocks();
         if (tab === 'small') return loadBand('small', 10, 100);
         if (tab === 'mid') return loadBand('mid', 100, 1000);
         if (tab === 'large') return loadBand('large', 1000, 1000000);
@@ -719,13 +713,17 @@
       // Global error handler
       window.addEventListener('error', function(e) {
         console.error('Global error:', e.error);
-        alert('JavaScript Error: ' + e.message);
+        document.body.innerHTML += '<div style="position:fixed;top:0;left:0;right:0;background:red;color:white;padding:20px;z-index:9999;">JavaScript Error: ' + e.message + '</div>';
       });
       
       window.addEventListener('unhandledrejection', function(e) {
         console.error('Unhandled promise rejection:', e.reason);
-        alert('Promise Error: ' + e.reason);
+        document.body.innerHTML += '<div style="position:fixed;top:0;left:0;right:0;background:orange;color:white;padding:20px;z-index:9999;">Promise Error: ' + e.reason + '</div>';
       });
+      
+      // Visual confirmation that JS is executing
+      console.log('=== SCRIPT STARTED ===');
+      document.getElementById('lastUpdate').textContent = 'JavaScript loaded at ' + new Date().toLocaleTimeString('en-IN');
       
       // Initial load
       console.log('Starting initial load...');
