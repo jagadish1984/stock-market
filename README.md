@@ -16,6 +16,12 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
+The app now attempts to refresh the latest available NSE bhavcopy into the local SQLite database on startup before serving market views. You can also trigger that manually with:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/refresh-latest-data
+```
+
 Tests
 
 Run unit tests with:

@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Market Compass</title>
+  <style>
+    :root{--bg:#f6efe5;--card:#fffaf4;--line:#dccbbb;--text:#28170d;--muted:#735e4f;--accent:#b45309;--accent2:#0f766e;--green:#166534;--red:#b91c1c;--shadow:0 18px 44px rgba(66,41,18,.12)}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at top left,rgba(245,158,11,.18),transparent 28%),radial-gradient(circle at top right,rgba(15,118,110,.14),transparent 24%),linear-gradient(180deg,#f8f4ed,#f2eadf);color:var(--text);font-family:"Space Grotesk","Segoe UI",sans-serif}
+    .page{max-width:1320px;margin:0 auto;padding:24px 16px 48px}
+    .hero,.card,.sidebar,.table-wrap{background:rgba(255,250,244,.9);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}
+    .hero{padding:26px;background:linear-gradient(135deg,rgba(255,251,246,.95),rgba(255,243,228,.92))}
+    .hero-grid,.main,.summary,.pair,.source-grid{display:grid;gap:16px}
+    .hero-grid{grid-template-columns:1.3fr .9fr}
+    .main{margin-top:18px;grid-template-columns:280px 1fr;align-items:start}
+    .summary{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+    .pair,.source-grid{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+    h1{margin:12px 0 10px;font:700 clamp(2.2rem,4vw,4rem)/.98 Georgia,serif}
+    h2,h3,h4,p{margin:0}
+    .eyebrow,.badge,.pill{display:inline-flex;align-items:center;border-radius:999px;font-weight:700}
+    .eyebrow{padding:8px 12px;background:rgba(180,83,9,.11);color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+    .lead,.muted{color:var(--muted);line-height:1.7}
+    .hero-actions,.tabs{display:flex;gap:10px;flex-wrap:wrap}
+    .hero-actions{margin-top:18px}
+    button,input{font:inherit}
+    .primary,.secondary,.tab{padding:12px 16px;border-radius:16px;cursor:pointer}
+    .primary{border:none;background:linear-gradient(135deg,#f59e0b,#b45309);color:#fff;font-weight:700}
+    .secondary,.tab{border:1px solid var(--line);background:#fff8f1;color:var(--text);font-weight:700}
+    .tab{width:100%;text-align:left;padding:14px 15px}
+    .tab.active{background:linear-gradient(135deg,rgba(180,83,9,.1),rgba(15,118,110,.09))}
+    .sidebar{padding:18px;position:sticky;top:16px}
+    .tabs{margin-top:14px;flex-direction:column}
+    .card,.table-wrap{padding:18px}
+    .metric{font-size:30px;font-weight:800;margin-top:8px}
+    .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+    .badge,.pill{padding:7px 11px;font-size:12px;background:rgba(26,23,18,.05)}
+    .status{font-size:27px;font-weight:800;margin:10px 0 8px}
+    .section{display:none;gap:16px}
+    .section.active{display:grid}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:12px 10px;border-top:1px solid rgba(40,23,13,.08);text-align:left;vertical-align:top;font-size:13px}
+    th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+    tr:hover td{background:rgba(180,83,9,.04)}
+    strong{font-size:14px}
+    .pos{color:var(--green);font-weight:700}.neg{color:var(--red);font-weight:700}.neu{color:var(--accent2);font-weight:700}
+    .notice{padding:14px 16px;border-radius:18px;background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(255,255,255,.55));border:1px solid rgba(180,83,9,.14);line-height:1.7}
+    .loading,.empty,.error{padding:20px 8px;color:var(--muted);line-height:1.7}.error{color:var(--red)}
+    .search{display:flex;gap:10px;flex-wrap:wrap}
+    .search input{flex:1;min-width:240px;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:#fff}
+    footer{margin-top:22px;color:var(--muted);text-align:center;font-size:12px}
+    @media (max-width:1080px){.hero-grid,.main{grid-template-columns:1fr}.sidebar{position:static}}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">NSE market dashboard with cleaner decision lanes</div>
+          <h1>Market Compass</h1>
+          <p class="lead">This version separates three things clearly: NSE-oriented market activity, official option-chain watchlists for the next session, and manual fundamentals research for 3 to 5 year investing.</p>
+          <div class="hero-actions">
+            <button class="primary" onclick="refreshAll()">Refresh dashboard</button>
+            <button class="secondary" onclick="showTab('sources')">Check data sources</button>
+          </div>
+          <div class="hero-actions" style="margin-top:12px">
+            <span class="badge" id="sessionBadge">Last NSE session: loading...</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="label">Current market read</div>
+          <div class="status" id="heroMood">Loading...</div>
+          <p class="muted" id="heroNote">Reading breadth and institutional context.</p>
+          <div class="hero-actions" style="margin-top:12px">
+            <span class="badge">Long-term and F&O are separate</span>
+            <span class="badge">Today is a watchlist, not a promise</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="main">
+      <aside class="sidebar">
+        <h3>Research lanes</h3>
+        <p class="muted" style="margin-top:8px">Use the right tab for the right decision.</p>
+        <div class="tabs">
+          <button class="tab active" data-tab="overview" onclick="showTab('overview')">Overview<br><span class="muted">Market breadth and leaders</span></button>
+          <button class="tab" data-tab="longterm" onclick="showTab('longterm')">Long-Term<br><span class="muted">3-5 year candidate list</span></button>
+          <button class="tab" data-tab="options" onclick="showTab('options')">F&O Watchlist<br><span class="muted">Official option-chain based setups</span></button>
+          <button class="tab" data-tab="flows" onclick="showTab('flows')">Institutional Flow<br><span class="muted">FII DII and bulk deals</span></button>
+          <button class="tab" data-tab="explorer" onclick="showTab('explorer')">Symbol Explorer<br><span class="muted">Search latest price data</span></button>
+          <button class="tab" data-tab="sources" onclick="showTab('sources')">Data Sources<br><span class="muted">Official vs inferred vs manual</span></button>
+        </div>
+      </aside>
+
+      <main style="display:grid;gap:16px">
+        <section class="section active" id="overview">
+          <div class="summary" id="summaryCards">
+            <div class="card"><div class="label">Total stocks</div><div class="metric">-</div><p class="muted">Loading breadth.</p></div>
+          </div>
+          <div class="pair">
+            <div class="card">
+              <div class="label">Market brief</div>
+              <h3 style="margin-top:8px;font:700 28px/1.1 Georgia,serif">What the tape says now</h3>
+              <p class="muted" id="briefText" style="margin-top:10px">Loading the market brief.</p>
+              <div class="hero-actions" style="margin-top:12px">
+                <span class="badge" id="briefDate">Date: -</span>
+                <span class="badge" id="briefMood">Mood: -</span>
+              </div>
+            </div>
+            <div class="card">
+              <div class="label">Important note</div>
+              <div class="notice" id="overviewNote" style="margin-top:12px">A green market day does not automatically mean a good 5-year buy.</div>
+            </div>
+          </div>
+          <div class="pair">
+            <div class="table-wrap"><div class="label">Top Gainers</div><div id="gainersTable" class="loading">Loading...</div></div>
+            <div class="table-wrap"><div class="label">Top Losers</div><div id="losersTable" class="loading">Loading...</div></div>
+            <div class="table-wrap"><div class="label">Most Active by Value</div><div id="activeTable" class="loading">Loading...</div></div>
+          </div>
+        </section>
+
+        <section class="section" id="longterm">
+          <div class="card">
+            <div class="label">3-5 Year Investing</div>
+            <h3 style="margin-top:8px;font:700 28px/1.1 Georgia,serif">Long-term candidates</h3>
+              <p class="muted" style="margin-top:10px">This list combines latest market context with a local fundamentals research file. PE, ROCE, debt, and growth values are maintained manually so you can update them from Screener, Tijori, or your own verified research.</p>
+            <div class="hero-actions">
+              <button class="secondary" onclick="loadLongTerm(8)">Top 8</button>
+              <button class="secondary" onclick="loadLongTerm(12)">Top 12</button>
+              <button class="secondary" onclick="loadLongTerm(20)">Top 20</button>
+            </div>
+          </div>
+          <div class="table-wrap"><div class="label">Long-Term Table</div><div id="longTermTable" class="loading">Loading...</div></div>
+        </section>
+
+        <section class="section" id="options">
+          <div class="card">
+            <div class="label">Official NSE Option Chain</div>
+            <h3 style="margin-top:8px;font:700 28px/1.1 Georgia,serif">F&O watch or ignore for now</h3>
+            <div class="notice" id="optionsNote" style="margin-top:12px">This section uses the official NSE option chain for real F&O symbols and marks setups as Watch CE, Watch PE, or Ignore for now.</div>
+            <div class="hero-actions">
+              <button class="secondary" onclick="loadOptions(8)">Top 8</button>
+              <button class="secondary" onclick="loadOptions(12)">Top 12</button>
+              <button class="secondary" onclick="loadOptions(20)">Top 20</button>
+            </div>
+          </div>
+          <div class="table-wrap"><div class="label">Official F&O Option-Chain Watchlist</div><div id="optionsTable" class="loading">Loading...</div></div>
+        </section>
+
+        <section class="section" id="flows">
+          <div class="pair">
+            <div class="table-wrap"><div class="label">Participant Positioning</div><div id="fiiDiiPanel" class="loading">Loading...</div></div>
+            <div class="table-wrap"><div class="label">Bulk / Block Summary</div><div id="bulkPanel" class="loading">Loading...</div></div>
+          </div>
+          <div class="table-wrap"><div class="label">Official F&O Participant Categories</div><div id="fnoParticipantsTable" class="loading">Loading...</div></div>
+          <div class="pair">
+            <div class="table-wrap"><div class="label">Approximate FII Stock Activity</div><div id="fiiTable" class="loading">Loading...</div></div>
+            <div class="table-wrap"><div class="label">Approximate DII Stock Activity</div><div id="diiTable" class="loading">Loading...</div></div>
+          </div>
+        </section>
+
+        <section class="section" id="explorer">
+          <div class="card">
+            <div class="label">Symbol Explorer</div>
+            <h3 style="margin-top:8px;font:700 28px/1.1 Georgia,serif">Search before acting</h3>
+            <p class="muted" style="margin-top:10px">Search the latest symbol data, then cross-check it with the long-term and F&O watchlist tabs.</p>
+            <div class="search" style="margin-top:16px">
+              <input id="searchInput" placeholder="Type RELIANCE or TCS" />
+              <button class="primary" onclick="loadSearch()">Search</button>
+            </div>
+          </div>
+          <div class="table-wrap"><div class="label">Latest Symbol Snapshot</div><div id="searchTable" class="empty">Enter a symbol to inspect its latest market row.</div></div>
+        </section>
+
+        <section class="section" id="sources">
+          <div class="card">
+            <div class="label">Source Transparency</div>
+            <h3 style="margin-top:8px;font:700 28px/1.1 Georgia,serif">What is from NSE and what is not</h3>
+            <p class="muted" style="margin-top:10px">This directly answers your question about NSE, Screener, and Tijori usage in the app.</p>
+          </div>
+          <div class="source-grid" id="sourcesGrid"><div class="loading">Loading...</div></div>
+        </section>
+      </main>
+    </div>
+
+    <footer>Research helper only. Last refresh: <span id="lastRefresh">-</span></footer>
+  </div>
+
+  <script>
+    const state = { longTermLimit: 12, optionsLimit: 12 };
+    const qs = (s) => document.querySelector(s);
+    async function api(path){ const r = await fetch(path); if(!r.ok) throw new Error(`${r.status} ${r.statusText}`); return r.json(); }
+    function showTab(id){ document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active", b.dataset.tab===id)); document.querySelectorAll(".section").forEach(s=>s.classList.toggle("active", s.id===id)); }
+    function price(v){ return v==null ? "-" : `Rs ${Number(v).toFixed(2)}`; }
+    function num(v){ if(v==null||Number.isNaN(Number(v))) return "-"; const n=Number(v); if(Math.abs(n)>=1e7) return `${(n/1e7).toFixed(2)} Cr`; if(Math.abs(n)>=1e5) return `${(n/1e5).toFixed(2)} L`; return n.toLocaleString("en-IN"); }
+    function pct(v){ if(v==null||Number.isNaN(Number(v))) return "-"; const n=Number(v), c=n>0?"pos":n<0?"neg":"neu", p=n>0?"+":""; return `<span class="${c}">${p}${n.toFixed(2)}%</span>`; }
+    function table(rows, cols, empty="No data available."){ if(!rows||!rows.length) return `<div class="empty">${empty}</div>`; let h="<table><thead><tr>"+cols.map(c=>`<th>${c.label}</th>`).join("")+"</tr></thead><tbody>"; rows.forEach(r=>{ h+="<tr>"+cols.map(c=>`<td>${c.render?c.render(r):(r[c.key]??"-")}</td>`).join("")+"</tr>"; }); return h+"</tbody></table>"; }
+    function priorityClass(v){ return v==="High priority"?"pos":v==="Watch closely"?"neu":"neg"; }
+
+    async function loadOverview(){
+      try{
+        const [brief,gainers,losers,active]=await Promise.all([api("/api/market-brief"),api("/api/top-gainers?limit=6"),api("/api/top-losers?limit=6"),api("/api/most-active?limit=6&by=value")]);
+        const o=brief.overview||{};
+        qs("#summaryCards").innerHTML=[
+          ["Total stocks",o.total_stocks,"Symbols in latest local dataset."],
+          ["Advancers",o.advancers,"Names closing above previous close."],
+          ["Decliners",o.decliners,"Names closing below previous close."],
+          ["Unchanged",o.unchanged,"Little to no net move."]
+        ].map(m=>`<div class="card"><div class="label">${m[0]}</div><div class="metric">${m[1]??"-"}</div><p class="muted">${m[2]}</p></div>`).join("");
+        qs("#heroMood").textContent=brief.market_mood||"Mixed";
+        qs("#heroNote").textContent=`Date in use: ${brief.date||"-"} | FII sentiment: ${brief.institutional_summary?.fii?.sentiment||"not available"}.`;
+        qs("#briefDate").textContent=`Date: ${brief.date||"-"}`;
+        qs("#briefMood").textContent=`Mood: ${brief.market_mood||"-"}`;
+        qs("#sessionBadge").textContent=`Last NSE session: ${brief.date||"-"}`;
+        qs("#briefText").textContent=`Breadth is ${o.advancers||0} advancing stocks versus ${o.decliners||0} declining stocks. Use this as context, then move to the long-term or F&O watchlist tab.`;
+        qs("#overviewNote").textContent=`Market mood is ${brief.market_mood||"Mixed"}. A strong session can support tomorrow bias, but long-term buying still needs business quality and valuation checks.`;
+        qs("#gainersTable").innerHTML=table(gainers,[{label:"Symbol",render:r=>`<strong>${r.symbol}</strong>`},{label:"Last",render:r=>price(r.last)},{label:"Change",render:r=>pct(r.change_pct)},{label:"Volume",render:r=>num(r.volume)}]);
+        qs("#losersTable").innerHTML=table(losers,[{label:"Symbol",render:r=>`<strong>${r.symbol}</strong>`},{label:"Last",render:r=>price(r.last)},{label:"Change",render:r=>pct(r.change_pct)},{label:"Volume",render:r=>num(r.volume)}]);
+        qs("#activeTable").innerHTML=table(active,[{label:"Symbol",render:r=>`<strong>${r.symbol}</strong>`},{label:"Traded value",render:r=>num(r.traded_value)}]);
+      }catch(e){ ["#summaryCards","#gainersTable","#losersTable","#activeTable"].forEach(id=>qs(id).innerHTML=`<div class="error">Unable to load overview: ${e.message}</div>`); }
+    }
+
+    async function loadLongTerm(limit=state.longTermLimit){
+      state.longTermLimit=limit; qs("#longTermTable").innerHTML='<div class="loading">Loading...</div>';
+      try{
+        const rows=await api(`/api/long-term-candidates?limit=${limit}`);
+        qs("#longTermTable").innerHTML=table(rows,[
+          {label:"Stock",render:r=>`<strong>${r.symbol}</strong><br><span class="muted">${r.company_name||"-"}</span>`},
+          {label:"Priority",render:r=>`<span class="${priorityClass(r.priority)}"><strong>${r.priority}</strong></span>`},
+          {label:"Sector",key:"sector"},
+          {label:"Price",render:r=>price(r.price)},
+          {label:"PE",render:r=>r.pe==null?"-":Number(r.pe).toFixed(1)},
+          {label:"ROCE",render:r=>r.roce==null?"-":`${Number(r.roce).toFixed(1)}%`},
+          {label:"Debt/Equity",render:r=>r.debt_to_equity==null?"-":Number(r.debt_to_equity).toFixed(2)},
+          {label:"3Y Profit",render:r=>r.profit_cagr_3y==null?"-":`${Number(r.profit_cagr_3y).toFixed(1)}%`},
+          {label:"Why",render:r=>(r.reasons||[]).join("<br>")||r.notes||"-"}
+        ],"No long-term candidates found. Update the local fundamentals watchlist file.");
+      }catch(e){ qs("#longTermTable").innerHTML=`<div class="error">Unable to load long-term candidates: ${e.message}</div>`; }
+    }
+
+    async function loadOptions(limit=state.optionsLimit){
+      state.optionsLimit=limit; qs("#optionsTable").innerHTML='<div class="loading">Loading...</div>';
+      try{
+        const data=await api(`/api/options-watch?limit=${limit}`);
+        qs("#optionsNote").textContent=data.warning||"Real F&O contracts only.";
+        qs("#optionsTable").innerHTML=table(data.rows,[
+          {label:"Underlying",render:r=>`<strong>${r.symbol}</strong><br><span class="muted">${r.chain_timestamp||r.session_date||"-"}</span>`},
+          {label:"Action",render:r=>`<strong class="${r.action==='Watch CE'?'pos':(r.action==='Watch PE'?'neg':'neu')}">${r.action}</strong><br><span class="muted">${r.tradability||"-"}</span>`},
+          {label:"Spot",render:r=>price(r.spot_price)},
+          {label:"Change",render:r=>pct(r.change_pct)},
+          {label:"Nearest Expiry",key:"nearest_expiry"},
+          {label:"ATM Strike",key:"atm_strike"},
+          {label:"CE",render:r=>`${price(r.ce_last_price)}<br><span class="muted">Vol ${num(r.ce_volume)} | Chg OI ${num(r.ce_change_oi)}</span>`},
+          {label:"PE",render:r=>`${price(r.pe_last_price)}<br><span class="muted">Vol ${num(r.pe_volume)} | Chg OI ${num(r.pe_change_oi)}</span>`},
+          {label:"Why",render:r=>r.why||"-"}
+        ],"No F&O option-chain rows were available from the current official NSE symbol universe.");
+      }catch(e){ qs("#optionsTable").innerHTML=`<div class="error">Unable to load F&O contracts: ${e.message}</div>`; }
+    }
+
+    async function loadFlows(){
+      try{
+        const [fd,bulk,fno]=await Promise.all([api("/api/fii-dii"),api("/api/bulk-deals"),api("/api/fno-participants")]);
+        qs("#fiiDiiPanel").innerHTML=table([
+          {desk:"FII",...fd.fii},{desk:"DII",...fd.dii}
+        ],[
+          {label:"Desk",render:r=>`<strong>${r.desk}</strong>`},
+          {label:"Long",render:r=>num(r.long)},
+          {label:"Short",render:r=>num(r.short)},
+          {label:"Net",render:r=>num(r.net)},
+          {label:"Sentiment",key:"sentiment"}
+        ],"No participant data available.");
+        qs("#bulkPanel").innerHTML=table([
+          {bucket:"FII",buy:bulk.summary?.fii_buys,sell:bulk.summary?.fii_sells},
+          {bucket:"DII",buy:bulk.summary?.dii_buys,sell:bulk.summary?.dii_sells}
+        ],[
+          {label:"Bucket",render:r=>`<strong>${r.bucket}</strong>`},
+          {label:"Buy deals",key:"buy"},
+          {label:"Sell deals",key:"sell"}
+        ],"No bulk or block summary available.");
+        const stockCols=[{label:"Stock",render:r=>`<strong>${r.symbol}</strong>`},{label:"Buy qty",render:r=>num(r.buy_quantity)},{label:"Sell qty",render:r=>num(r.sell_quantity)},{label:"Net",render:r=>{const c=(r.net_quantity||0)>0?"pos":(r.net_quantity||0)<0?"neg":"neu"; return `<span class="${c}">${num(r.net_quantity)}</span>`;}}];
+        qs("#fnoParticipantsTable").innerHTML=table((fno.rows||[]),[
+          {label:"Category",render:r=>`<strong>${r.client_type}</strong>`},
+          {label:"Total Long",render:r=>num(r.total_long)},
+          {label:"Total Short",render:r=>num(r.total_short)},
+          {label:"Net",render:r=>{const c=(r.net||0)>0?"pos":(r.net||0)<0?"neg":"neu"; return `<span class="${c}">${num(r.net)}</span>`;}},
+          {label:"Stock F&O Focus",render:r=>num(r.stock_fno_focus)},
+          {label:"Stock Fut Long",render:r=>num(r.future_stock_long)},
+          {label:"Stock Fut Short",render:r=>num(r.future_stock_short)},
+          {label:"OI Net",render:r=>{const c=(r.open_interest_net||0)>0?"pos":(r.open_interest_net||0)<0?"neg":"neu"; return `<span class="${c}">${num(r.open_interest_net)}</span>`;}}
+        ],fno.warning||"No official F&O participant data available.");
+        qs("#fiiTable").innerHTML=table((bulk.fii_stocks||[]).slice(0,12),stockCols,"No FII-classified stock rows found.");
+        qs("#diiTable").innerHTML=table((bulk.dii_stocks||[]).slice(0,12),stockCols,"No DII-classified stock rows found.");
+      }catch(e){
+        ["#fiiDiiPanel","#bulkPanel","#fnoParticipantsTable","#fiiTable","#diiTable"].forEach(id=>qs(id).innerHTML=`<div class="error">Unable to load institutional flow: ${e.message}</div>`);
+      }
+    }
+
+    async function loadSearch(){
+      const q=qs("#searchInput").value.trim(); if(!q){ qs("#searchTable").innerHTML='<div class="empty">Enter a symbol to inspect its latest market row.</div>'; return; }
+      qs("#searchTable").innerHTML='<div class="loading">Searching...</div>';
+      try{
+        const rows=await api(`/api/search?q=${encodeURIComponent(q)}&limit=20`);
+        qs("#searchTable").innerHTML=table(rows,[{label:"Symbol",render:r=>`<strong>${r.symbol}</strong>`},{label:"Last",render:r=>price(r.last)},{label:"Open",render:r=>price(r.open)},{label:"High",render:r=>price(r.high)},{label:"Low",render:r=>price(r.low)},{label:"Prev close",render:r=>price(r.prev_close)},{label:"Volume",render:r=>num(r.volume)},{label:"Value",render:r=>num(r.traded_value)}],"No matching symbol found in the local database.");
+      }catch(e){ qs("#searchTable").innerHTML=`<div class="error">Unable to search: ${e.message}</div>`; }
+    }
+
+    async function loadSources(){
+      try{
+        const s=await api("/api/data-sources");
+        qs("#sourcesGrid").innerHTML=`
+          <div class="card"><div class="label">Official NSE path</div><p class="muted" style="margin-top:10px">${s.official_nse_market_data?.description||"-"}</p><div class="muted" style="margin-top:10px">${(s.official_nse_market_data?.inputs||[]).map(x=>`- ${x}`).join("<br>")}</div></div>
+          <div class="card"><div class="label">Derived signals</div><p class="muted" style="margin-top:10px">${s.inferred_layers?.description||"-"}</p></div>
+          <div class="card"><div class="label">Manual fundamentals layer</div><p class="muted" style="margin-top:10px">${s.research_layers?.description||"-"}</p><p class="muted" style="margin-top:10px"><strong>Local file</strong><br>${s.research_layers?.path||"-"}</p></div>
+          <div class="card"><div class="label">Warning</div><p class="muted" style="margin-top:10px">${s.warning||"-"}</p></div>`;
+      }catch(e){ qs("#sourcesGrid").innerHTML=`<div class="error">Unable to load sources: ${e.message}</div>`; }
+    }
+
+    async function refreshAll(){
+      qs("#lastRefresh").textContent=new Date().toLocaleString("en-IN");
+      await Promise.all([loadOverview(),loadLongTerm(),loadOptions(),loadFlows(),loadSources()]);
+    }
+
+    qs("#searchInput").addEventListener("keydown", e => { if(e.key==="Enter") loadSearch(); });
+    refreshAll();
+    setInterval(refreshAll, 120000);
+  </script>
+</body>
+</html>

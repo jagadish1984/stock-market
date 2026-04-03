@@ -1,0 +1,16 @@
+2026-03-29 18:54:58,785 INFO app.downloader NSE_SFTP_HOST not configured; skipping SFTP download
+2026-03-29 18:54:58,805 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-03-29 18:54:58,807 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-03-29 18:54:58,835 INFO apscheduler.scheduler Added job "list_and_download_once" to job store "default"
+2026-03-29 18:54:58,838 INFO apscheduler.scheduler Added job "ingest_once" to job store "default"
+2026-03-29 18:54:58,839 INFO apscheduler.scheduler Scheduler started
+2026-03-29 19:04:58,824 INFO apscheduler.executors.default Running job "list_and_download_once (trigger: interval[0:10:00], next run at: 2026-03-29 19:04:58 IST)" (scheduled at 2026-03-29 19:04:58.804693+05:30)
+2026-03-29 19:04:58,827 INFO app.downloader NSE_SFTP_HOST not configured; skipping SFTP download
+2026-03-29 19:04:58,827 INFO apscheduler.executors.default Job "list_and_download_once (trigger: interval[0:10:00], next run at: 2026-03-29 19:14:58 IST)" executed successfully
+2026-03-29 19:04:58,828 INFO apscheduler.executors.default Running job "ingest_once (trigger: interval[0:10:00], next run at: 2026-03-29 19:04:58 IST)" (scheduled at 2026-03-29 19:04:58.806694+05:30)
+2026-03-29 19:04:58,830 INFO apscheduler.executors.default Job "ingest_once (trigger: interval[0:10:00], next run at: 2026-03-29 19:14:58 IST)" executed successfully
+2026-03-29 19:14:58,811 INFO apscheduler.executors.default Running job "list_and_download_once (trigger: interval[0:10:00], next run at: 2026-03-29 19:24:58 IST)" (scheduled at 2026-03-29 19:14:58.804693+05:30)
+2026-03-29 19:14:58,811 INFO apscheduler.executors.default Running job "ingest_once (trigger: interval[0:10:00], next run at: 2026-03-29 19:24:58 IST)" (scheduled at 2026-03-29 19:14:58.806694+05:30)
+2026-03-29 19:14:58,811 INFO app.downloader NSE_SFTP_HOST not configured; skipping SFTP download
+2026-03-29 19:14:58,815 INFO apscheduler.executors.default Job "list_and_download_once (trigger: interval[0:10:00], next run at: 2026-03-29 19:24:58 IST)" executed successfully
+2026-03-29 19:14:58,815 INFO apscheduler.executors.default Job "ingest_once (trigger: interval[0:10:00], next run at: 2026-03-29 19:24:58 IST)" executed successfully

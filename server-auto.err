@@ -1,0 +1,5 @@
+INFO:     Started server process [18088]
+INFO:     Waiting for application startup.
+INFO:     Latest NSE EOD refresh skipped: Database already has this trade date
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)

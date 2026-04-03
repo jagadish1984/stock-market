@@ -18,6 +18,7 @@ class Settings:
         self.NSE_PRODUCTS: str = os.getenv("NSE_PRODUCTS", "")
         self.WATCHLIST: Optional[str] = os.getenv("WATCHLIST")
         self.SCHEDULE_MINUTES: int = int(os.getenv("SCHEDULE_MINUTES", "10"))
+        self.EOD_REFRESH_MINUTES: int = int(os.getenv("EOD_REFRESH_MINUTES", "180"))
         self.TIMEZONE: str = os.getenv("TIMEZONE", "Asia/Kolkata")
         self.DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./data/market_data.db")
         

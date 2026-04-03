@@ -15,9 +15,10 @@ import uvicorn
 from app.config import settings
 from app.db import init_db
 from app.downloader import list_and_download_once
+from app.eod_refresh import refresh_latest_eod
 from app.ingest import ingest_once
 from app import analytics
-from app.fii_dii import get_fii_dii_data
+from app.fii_dii import get_fii_dii_data, get_fno_participant_activity
 from app.bulk_deals import get_bulk_block_deals
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -34,6 +35,14 @@ app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
 @app.on_event("startup")
 def startup_event():
     init_db()
+    try:
+        result = refresh_latest_eod()
+        if result.get("updated"):
+            LOG.info("Latest NSE EOD refreshed for %s with %s rows", result["trade_date"], result["rows_imported"])
+        else:
+            LOG.info("Latest NSE EOD refresh skipped: %s", result.get("reason"))
+    except Exception:
+        LOG.exception("Latest NSE EOD refresh failed")
     # run initial download/ingest once
     try:
         list_and_download_once()
@@ -42,10 +51,21 @@ def startup_event():
         LOG.exception("Startup download/ingest failed")
 
     scheduler = BackgroundScheduler(timezone=settings.TIMEZONE)
+    scheduler.add_job(refresh_latest_eod, "interval", minutes=int(settings.EOD_REFRESH_MINUTES), id="eod_refresh")
     scheduler.add_job(list_and_download_once, "interval", minutes=int(settings.SCHEDULE_MINUTES), id="downloader")
     scheduler.add_job(ingest_once, "interval", minutes=int(settings.SCHEDULE_MINUTES), id="ingest")
     scheduler.start()
     app.state.scheduler = scheduler
+
+
+@app.post("/api/refresh-latest-data")
+def refresh_latest_data():
+    """Fetch latest available NSE EOD into the local database before the dashboard reads from it."""
+    try:
+        result = refresh_latest_eod()
+        return JSONResponse(result)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Latest data refresh failed: {exc}")
 
 
 @app.get("/api/health")
@@ -92,7 +112,7 @@ def readiness():
 
 @app.get("/")
 def root():
-    return RedirectResponse(url="/frontend/index.html")
+    return RedirectResponse(url="/frontend/dashboard.html")
 
 
 @app.get("/api/top-gainers")
@@ -150,6 +170,13 @@ def get_market_overview(date: Optional[str] = None):
     return JSONResponse(analytics.market_overview(target))
 
 
+@app.get("/api/market-brief")
+def get_market_brief(date: Optional[str] = None):
+    """Get a higher-level market brief for the dashboard home view."""
+    target = date and datetime.fromisoformat(date).date() or datetime.utcnow().date()
+    return JSONResponse(analytics.market_brief(target))
+
+
 @app.get("/api/search")
 def search_symbols(q: str, limit: int = 20, date: Optional[str] = None):
     """Search symbols by substring on latest available EOD date (or the provided date)."""
@@ -168,6 +195,14 @@ def get_institutional_data(date: Optional[str] = None):
     return JSONResponse({"error": "Data not available for the specified date"}, status_code=404)
 
 
+@app.get("/api/fno-participants")
+def get_fno_participants(date: Optional[str] = None):
+    """Get official NSE participant-category F&O activity for the last session."""
+    from datetime import timedelta
+    target = date and datetime.fromisoformat(date).date() or (datetime.utcnow().date() - timedelta(days=1))
+    return JSONResponse(get_fno_participant_activity(target))
+
+
 @app.get("/api/bulk-deals")
 def get_bulk_deals_data(date: Optional[str] = None):
     """Get bulk/block deals showing which stocks FII/DII are trading."""
@@ -175,6 +210,27 @@ def get_bulk_deals_data(date: Optional[str] = None):
     target = date and datetime.fromisoformat(date).date() or (datetime.utcnow().date() - timedelta(days=1))
     data = get_bulk_block_deals(target)
     return JSONResponse(data)
+
+
+@app.get("/api/long-term-candidates")
+def get_long_term_candidates(limit: int = 12, date: Optional[str] = None):
+    """Get 3-5 year investment candidates using local research inputs plus market context."""
+    target = date and datetime.fromisoformat(date).date() or datetime.utcnow().date()
+    return JSONResponse(analytics.long_term_candidates(target, limit))
+
+
+@app.get("/api/options-watch")
+def get_options_watch(limit: int = 12, date: Optional[str] = None):
+    """Get directional CE/PE watchlist based on market activity and yesterday-style institutional flow."""
+    from datetime import timedelta
+    target = date and datetime.fromisoformat(date).date() or (datetime.utcnow().date() - timedelta(days=1))
+    return JSONResponse(analytics.options_watch(target, limit))
+
+
+@app.get("/api/data-sources")
+def get_data_sources():
+    """Explain which parts of the app come from NSE-oriented feeds versus local research inputs."""
+    return JSONResponse(analytics.data_sources())
 
 
 if __name__ == "__main__":
